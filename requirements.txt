@@ -1,3 +1,4 @@
 beautifulsoup
 bottle
 beaker==1.9.0
+boto
