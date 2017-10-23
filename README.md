@@ -18,6 +18,17 @@ The project has the following directory structure:
 
 Public IP Address
 -----------------
+http://ec2-34-237-5-126.compute-1.amazonaws.com
 
+Enabled Google APIs
+-------------------
+- Account Name
+- Account Email
+- Account Picture
 
-
+Benchmark Setup
+---------------
+Benchmark runs from a separate AWS t2.micro instance in the same region.
+Asynchronous event processing is enabled by Bjoern.
+Benchmark Command: ab -n 2500 -c 2500 -r http://ec2-34-237-5-126.compute-1.amazonaws.com/?keywords=helloworld+foo+bar
+Benchmark Command: dstat
