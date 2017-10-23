@@ -7,7 +7,6 @@ from oauth2client.client import flow_from_clientsecrets
 from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
 from beaker.middleware import SessionMiddleware
-#from beaker.cache import cache_regions
 import re, httplib2
 import os
 
