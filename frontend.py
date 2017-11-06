@@ -179,7 +179,7 @@ def search_page():
     if all(k in s for k in ('email', 'picture', 'name')):
         return template('search', anonymous=anonymous, picture=s['picture'], name=s['name'], email=s['email'])
     else:
-        return template('search', anonymous=anonymous)
+        return template('search', anonymous=True)
 
 
 @route('/static/<filename:path>')
