@@ -200,7 +200,7 @@ class crawler(object):
     def _visit_title(self, elem):
         """Called when visiting the <title> tag."""
         title_text = self._text_of(elem).strip()
-        print "document title=" + repr(title_text)
+        #print "document title=" + repr(title_text)
         self._document_index[self._curr_doc_id][0] = title_text
         # TODO update document title for document id self._curr_doc_id
 
@@ -229,7 +229,7 @@ class crawler(object):
         # TODO: knowing self._curr_doc_id and the list of all words and their
         #       font sizes (in self._curr_words), add all the words into the
         #       database for this document
-        print "    num words=" + str(len(self._curr_words))
+        #print "    num words=" + str(len(self._curr_words))
 
     def _increase_font_factor(self, factor):
         """Increade/decrease the current font size."""
@@ -368,12 +368,12 @@ class crawler(object):
                 self._curr_relation = []
 
             except Exception as e:
-                print e
+                #print e
                 pass
             finally:
                 if socket:
                     socket.close()
-        print self._inverted_word_id_cache
+        #print self._inverted_word_id_cache
         self.insertdatabase()
         self.get_page_rank()
 
