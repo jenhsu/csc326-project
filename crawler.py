@@ -46,6 +46,7 @@ class crawler(object):
     def __init__(self, db_conn, url_file):
         """Initialize the crawler with a connection to the database to populate
         and with the file containing the list of seed URLs to begin indexing."""
+        self._db_conn = db_conn
         self._url_queue = []
         self._doc_id_cache = {}
         self._inverted_doc_id_cache = {}
@@ -421,12 +422,12 @@ class crawler(object):
 
         # insert the rankscore to pageRank table in database
         import sqlite3 as lite
-        con = lite.connect("dbFile.db")
+        con = lite.connect(self._db_conn)
         cur = con.cursor()
         cur.execute('CREATE TABLE IF NOT EXISTS pageRank(docid INTEGER PRIMARY KEY, score real)')
         for item in pr:
             score = pr[item]
-            cur.execute('INSERT INTO pageRank VALUES (?, ?)', (item, score)
+            cur.execute('INSERT INTO pageRank VALUES (?, ?)', (item, score))
 
         con.commit()
         con.close()
@@ -468,7 +469,7 @@ class crawler(object):
     def insertdatabase(self):
         # insert lexicon, docindex and inverted index into the database
         import sqlite3 as lite
-        con = lite.connect("dbFile.db")
+        con = lite.connect(self._db_conn)
         cur = con.cursor()
         cur.execute('CREATE TABLE IF NOT EXISTS lexicon(wordid INTEGER PRIMARY KEY, word text)')
         for item in self._inverted_word_id_cache:
@@ -493,10 +494,10 @@ class crawler(object):
 
 
 if __name__ == "__main__":
-    bot = crawler(None, "urls.txt")
-    con = lite.connect("dbFile.db")
+    #bot = crawler("new_db.db", "urls.txt")
+    con = lite.connect("new_db.db")
     cur = con.cursor()
-    cur.execute('SELECT * FROM pageRank')
+    cur.execute('SELECT * FROM lexicon')
     con.close
     print cur.fetchall()
     con.close
