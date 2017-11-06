@@ -1,14 +1,15 @@
-from bottle import route, run, request, static_file, redirect, app, template
+from bottle import route, run, request, static_file, redirect, app, template, error
 import copy
 from collections import OrderedDict, deque
 from collections import Counter
+from math import ceil
 from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.client import flow_from_clientsecrets
-from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
 from beaker.middleware import SessionMiddleware
 import re, httplib2
 import os
+import sqlite3 as sql
 
 
 # store dictionary user history
@@ -21,7 +22,8 @@ recent_history = deque(maxlen=10)
 anonymous = ""
 
 SCOPE = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
-REDIRECT_URI = "http://ec2-34-237-5-126.compute-1.amazonaws.com/redirect"
+BASE_URL = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
+REDIRECT_URI = BASE_URL + "/redirect"
 CLIENT_ID = "689107597559-4uoj4ucpa8c4ntm0jpiapnrasj4ecohl.apps.googleusercontent.com"
 CLIENT_SECRET = "QE8cFRbbubTPhztL7vf5aTZr"
 
@@ -105,13 +107,13 @@ def redirect_page():
 
 @route('/search')
 def result():
-    """Returns results page with search data and history."""
+    """Returns search results page."""
     s = request.environ.get('beaker.session')
     result_page = search_page()
 
     # Get user input if any exist
     if 'keywords' in request.query:
-        input = request.query['keywords']
+        """
         if input.strip():
             html_table = parse_dict(input)
             # return user input and result and history table
@@ -122,7 +124,35 @@ def result():
         # display history and recent history only if user signed in
         if anonymous == False:
             result_page += '''<div id="table_container"> {}'''.format(get_history()) + "</div>" + '''<div id="table_container"> {}'''.format(get_recent()) + "</div>"
+        """
+        if 'page_no' not in request.query:
+            redirect("{0}/search?{1}".format(BASE_URL, request.query_string + "&page_no=1"))
+        keywords = request.query['keywords']
+        # Choose the first word as the search keyWord.
+        keyword = keywords.split()[0].lower()
+        page = int(request.query['page_no'])
+        con = sql.connect('dbFile.db')
+        cur = con.cursor()
+        query = """
+                SELECT DISTINCT docIndex.url
+                FROM pageRank, lexicon, invertedIndex, docIndex
+                WHERE lexicon.word = "%s"
+                    AND invertedIndex.wordid = lexicon.wordid
+                    AND invertedIndex.docid = pageRank.docid
+                    AND docIndex.docid = pageRank.docid
+                ORDER BY pageRank.score DESC
+                """ % keyword
+
+        cur.execute(query)
+        urls = cur.fetchall()
+        con.close()
+        page_urls = urls[5 * (page - 1): 5 * page]
+        total_pages = int(ceil(len(urls) / 5.0))
+        result_page += template('search_results', urls=page_urls, curr_page=page,
+                                total_pages=total_pages, keyword=keyword)
+
     return result_page
+
 
 @route('/signout')
 def logout():
@@ -132,8 +162,9 @@ def logout():
     s = request.environ.get('beaker.session')
 
     #copy history and recent history
-    global_user_history[s['email']] = copy.copy(global_dict)
-    global_user_recent[s['email']] = copy.copy(recent_history)
+    if 'email' in s:
+        global_user_history[s['email']] = copy.copy(global_dict)
+        global_user_recent[s['email']] = copy.copy(recent_history)
     s.delete()
     global_dict.clear()
     recent_history.clear()
@@ -145,15 +176,9 @@ def search_page():
     """Returns page with search bar, prompt query, and logo"""
     s = request.environ.get('beaker.session')
 
-    try:
-        if s['email']:
-            email = s['email']
-            if s['picture']:
-                picture = s['picture']
-            if s['name']:
-                name = s['name']
-        return template('search', anonymous=anonymous, picture=picture, name=name, email=email)
-    except:
+    if all(k in s for k in ('email', 'picture', 'name')):
+        return template('search', anonymous=anonymous, picture=s['picture'], name=s['name'], email=s['email'])
+    else:
         return template('search', anonymous=anonymous)
 
 
@@ -161,6 +186,11 @@ def search_page():
 def server_static(filename):
     """Serves static files from project directory."""
     return static_file(filename, root=os.path.dirname(os.path.realpath(__file__)))
+
+
+@error(404)
+def error404(error):
+    return 'The requested page or file does not exist. <a href="{}">Click to search again.</a>'.format(BASE_URL)
 
 def parse_dict(input_string):
     """Stores results, history in a dict and recently search in a deque and returns the results table.
