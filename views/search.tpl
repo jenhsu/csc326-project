@@ -8,7 +8,7 @@
         input[type=submit] {width: 6%;height: 3%; color: #87CEEB;background-color: #4682B4;border: none;-moz-border-radius: 5px;-webkit-border-radius: 5px;}
         h2 {text-align: center;}
         p {text-align: center;}
-        table{float: left; width:148px; padding-top: 0.5cm;}
+        #table{float: left; width:148px; padding-top: 0.5cm;}
         #table_container{width:450px;  top: 0; bottom: 0; left: 0; right:0; margin: auto; height:auto;}
         td {padding: 1px; text-align: center;}
         .logo {position: absolute; top: 0; left: 0; right:0; margin: auto;width:108px;height:120px;}
