@@ -1,1 +1,3 @@
-http://www.eecg.toronto.edu/~ashvin/courses/ece344/current/
+http://www.eecg.toronto.edu/
+http://www.teach.cs.toronto.edu/~csc309h/fall/
+http://www.cs.toronto.edu/~jlucas/teaching/csc411/

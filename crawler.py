@@ -230,6 +230,7 @@ class crawler(object):
         #       font sizes (in self._curr_words), add all the words into the
         #       database for this document
         #print "    num words=" + str(len(self._curr_words))
+        pass
 
     def _increase_font_factor(self, factor):
         """Increade/decrease the current font size."""
