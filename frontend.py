@@ -107,7 +107,7 @@ def redirect_page():
 
 @route('/search')
 def result():
-    """Returns results page with search data and history."""
+    """Returns search results page."""
     s = request.environ.get('beaker.session')
     result_page = search_page()
 
@@ -162,8 +162,9 @@ def logout():
     s = request.environ.get('beaker.session')
 
     #copy history and recent history
-    global_user_history[s['email']] = copy.copy(global_dict)
-    global_user_recent[s['email']] = copy.copy(recent_history)
+    if 'email' in s:
+        global_user_history[s['email']] = copy.copy(global_dict)
+        global_user_recent[s['email']] = copy.copy(recent_history)
     s.delete()
     global_dict.clear()
     recent_history.clear()
@@ -175,15 +176,9 @@ def search_page():
     """Returns page with search bar, prompt query, and logo"""
     s = request.environ.get('beaker.session')
 
-    try:
-        if s['email']:
-            email = s['email']
-            if s['picture']:
-                picture = s['picture']
-            if s['name']:
-                name = s['name']
-        return template('search', anonymous=anonymous, picture=picture, name=name, email=email)
-    except:
+    if all(k in s for k in ('email', 'picture', 'name')):
+        return template('search', anonymous=anonymous, picture=s['picture'], name=s['name'], email=s['email'])
+    else:
         return template('search', anonymous=anonymous)
 
 
