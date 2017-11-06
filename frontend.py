@@ -22,8 +22,7 @@ recent_history = deque(maxlen=10)
 anonymous = ""
 
 SCOPE = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
-#BASE_URL = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
-BASE_URL = "http://localhost:8080"  # TEMP
+BASE_URL = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
 REDIRECT_URI = BASE_URL + "/redirect"
 CLIENT_ID = "689107597559-4uoj4ucpa8c4ntm0jpiapnrasj4ecohl.apps.googleusercontent.com"
 CLIENT_SECRET = "QE8cFRbbubTPhztL7vf5aTZr"
@@ -286,5 +285,4 @@ def get_recent():
     return html
 
 
-#run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
-run(host='localhost', port=8080, debug=True, app=app)
+run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
