@@ -3,7 +3,7 @@ import boto.ec2
 import time
 
 def setup_aws():
-    """make connection to us-east-1, set up an instance, 
+    """connect to us-east-1, set up an instance, 
        and associate Elastic IPs to it
     """
     conn = boto.ec2.connect_to_region(
