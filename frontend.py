@@ -146,10 +146,12 @@ def result():
 
         cur.execute(query)
         urls = cur.fetchall()
+        con.close()
         page_urls = urls[5 * (page - 1): 5 * page]
         total_pages = int(ceil(len(urls) / 5.0))
         result_page += template('search_results', urls=page_urls, curr_page=page,
                                 total_pages=total_pages, keyword=keyword)
+
     return result_page
 
 
