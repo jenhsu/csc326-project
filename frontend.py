@@ -1,6 +1,6 @@
 from bottle import route, run, request, static_file, redirect, app, template, error
 import copy
-from collections import OrderedDict, deque
+from collections import OrderedDict, deque, defaultdict
 from collections import Counter
 from math import ceil
 from oauth2client.client import OAuth2WebServerFlow
@@ -129,28 +129,31 @@ def result():
             redirect("{0}/search?{1}".format(BASE_URL, request.query_string + "&page_no=1"))
         keywords = request.query['keywords']
         # Choose the first word as the search keyWord.
-        keyword = keywords.split()[0].lower()
         page = int(request.query['page_no'])
         con = sql.connect('dbFile.db')
         cur = con.cursor()
-        query = """
-                SELECT DISTINCT docIndex.url
-                FROM pageRank, lexicon, invertedIndex, docIndex
-                WHERE lexicon.word = "%s"
-                    AND invertedIndex.wordid = lexicon.wordid
-                    AND invertedIndex.docid = pageRank.docid
-                    AND docIndex.docid = pageRank.docid
-                ORDER BY pageRank.score DESC
-                """ % keyword
-
-        cur.execute(query)
-        urls = cur.fetchall()
+        results = defaultdict(float)
+        for keyword in keywords.split():
+            # No need to order by pageRank.score DESC with multi-word search
+            query = """
+                    SELECT DISTINCT docIndex.url, pageRank.score
+                    FROM pageRank, lexicon, invertedIndex, docIndex
+                    WHERE lexicon.word = "%s"
+                        AND invertedIndex.wordid = lexicon.wordid
+                        AND invertedIndex.docid = pageRank.docid
+                        AND docIndex.docid = pageRank.docid
+                    """ % keyword.lower()
+            cur.execute(query)
+            urls = cur.fetchall()
+            for url, score in urls:
+                results[url] += score
         con.close()
+        urls = sorted(results.items(), key=lambda x: x[1], reverse=True)
         page_urls = urls[5 * (page - 1): 5 * page]
         total_pages = int(ceil(len(urls) / 5.0))
         result_page += template('search_results', urls=page_urls, curr_page=page,
-                                total_pages=total_pages, keyword=keyword)
-
+                                total_pages=total_pages,
+                                keywords="+".join(keywords.split()))
     return result_page
 
 
@@ -278,6 +281,5 @@ def get_recent():
 
     html += "</table>"
     return html
-
 
 run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
