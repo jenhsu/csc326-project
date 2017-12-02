@@ -24,6 +24,7 @@
 <body>
     %if len(urls)==0:
         <p> No Results Found.</p>
+        {{!suggestions}}
     %else:
     <div id="container">
         <div id="results">
@@ -42,11 +43,11 @@
                 %if i == curr_page:
                     <b>{{i}}</b>
                 %else:
-                    <a href="/search?keywords={{keyword}}&page_no={{i}}">{{i}}</a>
+                    <a href="/search?keywords={{keywords}}&page_no={{i}}">{{i}}</a>
                 %end
             %end
             %if curr_page < total_pages:
-                <a href="/search?keywords={{keyword}}&page_no={{curr_page+1}}">Next</a>
+                <a href="/search?keywords={{keywords}}&page_no={{curr_page+1}}">Next</a>
             %end
         </div>
     </div>

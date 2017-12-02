@@ -30,7 +30,7 @@
         <div><img src="/static/logo.jpg" class="logo" alt="DinoSaurch">
         <h1>DinoSaurch</h1>
         <form action ="/search" method="get">
-             Search: <input name="keywords" type="text"/>
+             Search: <input name="keywords" type="text" autocomplete="off" />
                     <input value = "Search" type="submit"/>
         </form></div>
 </body>

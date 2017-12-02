@@ -495,7 +495,7 @@ class crawler(object):
 
 
 if __name__ == "__main__":
-    #bot = crawler("new_db.db", "urls.txt")
+   # bot = crawler("new_db.db", "urls.txt")
     con = lite.connect("new_db.db")
     cur = con.cursor()
     cur.execute('SELECT * FROM lexicon')
