@@ -1,3 +1,5 @@
 Beaker-1.9.0/
 .idea/
 data/
+autocorrect*
+boto-*
