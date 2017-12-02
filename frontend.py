@@ -1,22 +1,27 @@
-from bottle import route, run, request, static_file, redirect, app, template, error
 import copy
-from collections import OrderedDict, deque, defaultdict
+import httplib2
+import os
+import re
+import sqlite3 as sql
 from collections import Counter
+from collections import OrderedDict, deque, defaultdict
 from math import ceil
+
+from beaker.middleware import SessionMiddleware
+from bottle import route, run, request, static_file, redirect, app, template, error
+from googleapiclient.discovery import build
 from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.client import flow_from_clientsecrets
-from googleapiclient.discovery import build
-from beaker.middleware import SessionMiddleware
-import re, httplib2
-import os
-import sqlite3 as sql
 
+from cache import LRUCache
 
 # store dictionary user history
 global_user_history = dict()
 global_user_recent = dict()
 global_dict = Counter()
 recent_history = deque(maxlen=10)
+# Initialize custom LRU Cache with a capacity of 10000 search results.
+global_search_cache = LRUCache(10000)
 
 #check if user is signed in or not
 anonymous = ""
@@ -132,23 +137,27 @@ def result():
         page = int(request.query['page_no'])
         con = sql.connect('dbFile.db')
         cur = con.cursor()
-        results = defaultdict(float)
-        for keyword in keywords.split():
-            # No need to order by pageRank.score DESC with multi-word search
-            query = """
-                    SELECT DISTINCT docIndex.url, pageRank.score
-                    FROM pageRank, lexicon, invertedIndex, docIndex
-                    WHERE lexicon.word = "%s"
-                        AND invertedIndex.wordid = lexicon.wordid
-                        AND invertedIndex.docid = pageRank.docid
-                        AND docIndex.docid = pageRank.docid
-                    """ % keyword.lower()
-            cur.execute(query)
-            urls = cur.fetchall()
-            for url, score in urls:
-                results[url] += score
-        con.close()
-        urls = sorted(results.items(), key=lambda x: x[1], reverse=True)
+        urls = global_search_cache.get(keywords)
+        if urls is None:
+            print "CACHE MISS"
+            results = defaultdict(float)
+            for keyword in keywords.split():
+                # No need to order by pageRank.score DESC with multi-word search
+                query = """
+                        SELECT DISTINCT docIndex.url, pageRank.score
+                        FROM pageRank, lexicon, invertedIndex, docIndex
+                        WHERE lexicon.word = "%s"
+                            AND invertedIndex.wordid = lexicon.wordid
+                            AND invertedIndex.docid = pageRank.docid
+                            AND docIndex.docid = pageRank.docid
+                        """ % keyword.lower()
+                cur.execute(query)
+                urls = cur.fetchall()
+                for url, score in urls:
+                    results[url] += score
+            con.close()
+            urls = sorted(results.items(), key=lambda x: x[1], reverse=True)
+            global_search_cache.set(keywords, urls)
         page_urls = urls[5 * (page - 1): 5 * page]
         total_pages = int(ceil(len(urls) / 5.0))
         result_page += template('search_results', urls=page_urls, curr_page=page,
