@@ -21,13 +21,8 @@ global_suggest = []
 # Initialize custom LRU Cache with a capacity of 10000 search results.
 global_search_cache = LRUCache(10000)
 
-
-SCOPE = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
 BASE_URL = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
 REDIRECT_URI = BASE_URL + "/redirect"
-
-
-
 
 session_opts = {
     'session.type': 'file',
@@ -37,12 +32,11 @@ session_opts = {
 }
 app = SessionMiddleware(app(), session_opts)
 
+
 @route('/')
 def home():
     """home page of web application"""
-
     s = request.environ.get('beaker.session')
-
     return search_page()
 
 
@@ -54,55 +48,13 @@ def result():
 
     # Get user input if any exist
     if 'keywords' in request.query:
-        suggest_html = ''
-
-        """
-        if input.strip():
-            html_table = parse_dict(input)
-            # return user input and result and history table
-            result_page +='''
-                <p>Search for \"''' + re.sub("\s\s+", " ", input) + '''\"</p><div id="table_container"> {}
-                    '''.format(html_table) + "</div>"
-
-        # display history and recent history only if user signed in
-        if anonymous == False:
-            result_page += '''<div id="table_container"> {}'''.format(get_history()) + "</div>" + '''<div id="table_container"> {}'''.format(get_recent()) + "</div>"
-        """
         if 'page_no' not in request.query:
             redirect("{0}/search?{1}".format(BASE_URL, request.query_string + "&page_no=1"))
         # Choose the first word as the search keyWord.
         keywords = request.query['keywords']
         page = int(request.query['page_no'])
-        urls = global_search_cache.get(keywords)
-        if urls is None:
-            con = sql.connect('dbFile.db')
-            cur = con.cursor()
-            urls = query_words(keywords, cur)
-            global_search_cache.set(keywords, urls)
-            #if original keywords has no results, search against corrected keywords
-            if len(urls) == 0:
-                spell_check_html, check_keywords = spell_check(keywords)
-                urls = query_words(check_keywords, cur)
-                #corrected keywords has results
-                if len(urls) != 0:
-                    # Remove keywords from cache to trigger autocorrect on next call
-                    global_search_cache.set(keywords, None)
-                    #save valid corrected search in suggestions list
-                    if check_keywords not in global_suggest:
-                        global_suggest.append(check_keywords)
-                    result_page += spell_check_html
-                # corrected keywords has no results, display suggestions list
-                else:
-                    #search for suggestions against original keywords
-                    suggest_html = suggestions(keywords, global_suggest)
-            else:
-                #save valid search in suggestions list
-                if keywords not in global_suggest:
-                    global_suggest.append(keywords)
-            con.close()
-        elif not urls:
-            suggest_html = suggestions(keywords, global_suggest)
-
+        urls, suggest_html, spell_check_html = search_keywords(keywords)
+        result_page += spell_check_html
         page_urls = urls[5 * (page - 1): 5 * page]
         total_pages = int(ceil(len(urls) / 5.0))
         result_page += template('search_results', urls=page_urls, curr_page=page,
@@ -113,6 +65,54 @@ def result():
     return result_page
 
 
+def search_keywords(keywords):
+    """ Execute an SQL query for each word in keywords and return an array of
+        (url, pagerank_score) pairs sorted by decreasing pagerank_score.
+
+        Args:
+            keywords: keywords string to be searched.
+        Returns:
+            urls: Array of (url, pagerank_score) pairs sorted by decreasing
+                pagerank score.
+            suggest_html: HTML content for search suggestions
+            spell_check_html: HTML content for autocorrected keywords results.
+        """
+    suggest_html = ''
+    spell_check_html = ''
+    # First check for search string in LRU search cache
+    urls = global_search_cache.get(keywords)
+    if urls is None:
+        con = sql.connect('dbFile.db')
+        cur = con.cursor()
+        urls = query_words(keywords, cur)
+        global_search_cache.set(keywords, urls)
+        # if no results, try to auto-correct keywords and search again
+        if len(urls) == 0:
+            spell_check_html, check_keywords = spell_check(keywords)
+            # If auto-correct made changes, query the corrected string.
+            if spell_check_html:
+                urls = query_words(check_keywords, cur)
+                # corrected keywords has results
+                if len(urls) == 0:
+                    spell_check_html = ""
+                else:
+                    # Remove keywords from cache to trigger auto-correct on next
+                    # call.
+                    global_search_cache.set(keywords, None)
+                    # save valid corrected search in suggestions list
+                    if check_keywords not in global_suggest:
+                        global_suggest.append(check_keywords)
+                # corrected keywords has no results, display suggestions list
+        else:
+            # save non-empty search in suggestions list
+            if keywords not in global_suggest:
+                global_suggest.append(keywords)
+        con.close()
+    if not urls:
+        suggest_html = suggestions(keywords, global_suggest)
+    return urls, suggest_html, spell_check_html
+
+
 def query_words(keywords, cur):
     """ Execute an SQL query for each word in keywords and return an array of
     (url, pagerank_score) pairs sorted by decreasing pagerank_score.
@@ -121,7 +121,8 @@ def query_words(keywords, cur):
         keywords: keywords string to be searched.
         cur: cursor for the database connection.
     Returns:
-        Array of (url, pagerank_score) pairs sorted by decreasing pagerank score.
+        urls: Array of (url, pagerank_score) pairs sorted by decreasing pagerank
+            score.
     """
     results = defaultdict(float)
     for keyword in keywords.split():
@@ -139,6 +140,65 @@ def query_words(keywords, cur):
         for url, score in urls:
             results[url] += score
     return sorted(results.items(), key=lambda x: x[1], reverse=True)
+
+
+def spell_check(input):
+    """Autocorrect the input string
+
+        Args:
+        input: Query string input.
+    """
+    html = ""
+    input = re.sub("\s\s+", " ", input.strip().lower())
+    word_array = input.split(" ")
+    temp = ''
+    for word in word_array:
+        correct = spell(word)
+        temp += correct + ' '
+
+    temp = temp.rstrip()
+    if input.lower() != temp.lower():
+        html += '''<p> No result for \"''' + re.sub("\s\s+", " ", input) +\
+        '''\"</p><p>Showing search results for \"''' + re.sub("\s\s+", " ", temp) + '''\"</p>'''
+    return html,temp
+
+
+def suggestions(input, history):
+    """Prints a search suggestions table if input from user give no results
+
+        Args:
+        input: Query string input.
+        history: global list of successfully searched terms
+    """
+    suggestions = []
+    pattern = ''
+
+    if len(input) == 1:
+        pattern = '^' + input
+    else:
+        for word in input.split():
+            pattern += '.*'.join(word[0] + word[-1]) + ' +'
+            pattern = '^' + pattern
+    pattern = pattern[:-2]
+
+    regex = re.compile(pattern)
+    for string in history:
+        match = regex.search(string)
+        if match:
+            suggestions.append(string)
+
+    html = '''
+               <table id="Suggestions">
+               <tr><th style="text-align:center">Search Suggestions</th></tr>
+            '''
+    if not suggestions:
+        html = ''
+    else:
+        for item in suggestions[:5]:
+            html += "<tr><td>" + item + "</td></tr>"
+        html += "</table>"
+    return html
+
 
 @route('/signout')
 def logout():
@@ -173,9 +233,9 @@ def server_static(filename):
     """Serves static files from project directory."""
     return static_file(filename, root=os.path.dirname(os.path.realpath(__file__)))
 
-
 @error(404)
 def error404(error):
+    """Return contents of an error page."""
     return 'The requested page or file does not exist. <a href="{}">Click to search again.</a>'.format(BASE_URL)
 
 def parse_dict(input_string):
@@ -263,64 +323,6 @@ def get_recent():
         html += "<tr><td>" + word+ "</td></tr>"
 
     html += "</table>"
-    return html
-
-
-def spell_check(input):
-    """Autocorrect the input string
-
-        Args:
-        input: Query string input.
-    """
-    html = ""
-    input = re.sub("\s\s+", " ", input.strip().lower())
-    word_array = input.split(" ")
-    temp = ''
-    for word in word_array:
-        correct = spell(word)
-        temp += correct + ' '
-
-    temp = temp.rstrip()
-    if (input != temp):
-        html += '''<p> No result for \"''' + re.sub("\s\s+", " ", input) +\
-        '''\"</p><p>Showing search results for \"''' + re.sub("\s\s+", " ", temp) + '''\"</p>'''
-    return html,temp
-
-
-def suggestions(input, history):
-    """Prints a search suggestions table if input from user give no results
-
-        Args:
-        input: Query string input.
-        history: global list of successfully searched terms
-    """
-    suggestions = []
-    pattern = ''
-
-    if len(input) == 1:
-        pattern = '^' + input
-    else:
-        for word in input.split():
-            pattern += '.*'.join(word[0] + word[-1]) + ' +'
-            pattern = '^' + pattern
-    pattern = pattern[:-2]
-
-    regex = re.compile(pattern)
-    for string in history:
-        match = regex.search(string)
-        if match:
-            suggestions.append(string)
-
-    html = '''
-               <table id="Suggestions">
-               <tr><th style="text-align:center">Search Suggestions</th></tr>
-            '''
-    if not suggestions:
-        html = ''
-    else:
-        for item in suggestions[:5]:
-            html += "<tr><td>" + item + "</td></tr>"
-        html += "</table>"
     return html
 
 

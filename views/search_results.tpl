@@ -23,7 +23,7 @@
 </head>
 <body>
     %if len(urls)==0:
-        <p> No Results Found.</p>
+        <p> No results found for "{{keywords}}".</p>
         {{!suggestions}}
     %else:
     <div id="container">

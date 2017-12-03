@@ -7,9 +7,7 @@ class ListNode(object):
 
 class LRUCache(object):
     def __init__(self, capacity):
-        """
-        :type capacity: int
-        """
+        """Initialize a Least Recently Used cache with the given capacity."""
         if capacity <= 0:
             raise ValueError("Given capacity is too small!")
         # Use a dictionary for fast lookups. Map keys to a list containing
@@ -23,9 +21,7 @@ class LRUCache(object):
         self._size = 0
 
     def get(self, key):
-        """
-        :rtype: int
-        """
+        """Get the value associated with the given cache key."""
         if key in self._map:
             value = self._map[key][0]
             node = self._map[key][1]
@@ -48,12 +44,7 @@ class LRUCache(object):
             return None
 
     def set(self, key, value):
-        """
-
-        :type key: int
-        :type value: int
-        :rtype: None
-        """
+        """Set cache key to the given value."""
         # If key is in map, update the value and move node to front of queue
         if key in self._map:
             # Update value of key
