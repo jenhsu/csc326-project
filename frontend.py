@@ -29,8 +29,7 @@ global_search_cache = LRUCache(10000)
 anonymous = ""
 
 SCOPE = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
-BASE_URL = "http://localhost:8080"
-#BASE_URL = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
+BASE_URL = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
 REDIRECT_URI = BASE_URL + "/redirect"
 CLIENT_ID = "689107597559-4uoj4ucpa8c4ntm0jpiapnrasj4ecohl.apps.googleusercontent.com"
 CLIENT_SECRET = "QE8cFRbbubTPhztL7vf5aTZr"
@@ -144,42 +143,12 @@ def result():
         if urls is None:
             con = sql.connect('dbFile.db')
             cur = con.cursor()
-            print "CACHE MISS"  # TEMP
-            results = defaultdict(float)
-            for keyword in keywords.split():
-                # No need to order by pageRank.score DESC with multi-word search
-                query = """
-                        SELECT DISTINCT docIndex.url, pageRank.score
-                        FROM pageRank, lexicon, invertedIndex, docIndex
-                        WHERE lexicon.word = "%s"
-                            AND invertedIndex.wordid = lexicon.wordid
-                            AND invertedIndex.docid = pageRank.docid
-                            AND docIndex.docid = pageRank.docid
-                        """ % keyword.lower()
-                cur.execute(query)
-                urls = cur.fetchall()
-                for url, score in urls:
-                    results[url] += score
-            urls = sorted(results.items(), key=lambda x: x[1], reverse=True)
+            urls = query_words(keywords, cur)
             global_search_cache.set(keywords, urls)
             #if original keywords has no results, search against corrected keywords
             if len(urls) == 0:
                 spell_check_html, check_keywords = spell_check(keywords)
-                for keyword in check_keywords.split():
-                    # No need to order by pageRank.score DESC with multi-word search
-                    query = """
-                            SELECT DISTINCT docIndex.url, pageRank.score
-                            FROM pageRank, lexicon, invertedIndex, docIndex
-                            WHERE lexicon.word = "%s"
-                                AND invertedIndex.wordid = lexicon.wordid
-                                AND invertedIndex.docid = pageRank.docid
-                                AND docIndex.docid = pageRank.docid
-                            """ % keyword.lower()
-                    cur.execute(query)
-                    urls = cur.fetchall()
-                    for url, score in urls:
-                        results[url] += score
-                urls = sorted(results.items(), key=lambda x: x[1], reverse=True)
+                urls = query_words(check_keywords, cur)
                 #corrected keywords has results
                 if len(urls) != 0:
                     # Remove keywords from cache to trigger autocorrect on next call
@@ -210,6 +179,32 @@ def result():
     return result_page
 
 
+def query_words(keywords, cur):
+    """ Execute an SQL query for each word in keywords and return an array of
+    (url, pagerank_score) pairs sorted by decreasing pagerank_score.
+
+    Args:
+        keywords: keywords string to be searched.
+        cur: cursor for the database connection.
+    Returns:
+        Array of (url, pagerank_score) pairs sorted by decreasing pagerank score.
+    """
+    results = defaultdict(float)
+    for keyword in keywords.split():
+        # No need to order by pageRank.score DESC with multi-word search
+        query = """
+                SELECT DISTINCT docIndex.url, pageRank.score
+                FROM pageRank, lexicon, invertedIndex, docIndex
+                WHERE lexicon.word = "%s"
+                    AND invertedIndex.wordid = lexicon.wordid
+                    AND invertedIndex.docid = pageRank.docid
+                    AND docIndex.docid = pageRank.docid
+                """ % keyword.lower()
+        cur.execute(query)
+        urls = cur.fetchall()
+        for url, score in urls:
+            results[url] += score
+    return sorted(results.items(), key=lambda x: x[1], reverse=True)
 
 @route('/signout')
 def logout():
@@ -395,4 +390,4 @@ def suggestions(input, history):
     return html
 
 
-run(host='0.0.0.0', port=8080, debug=True, app=app, server='bjoern')
+run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
