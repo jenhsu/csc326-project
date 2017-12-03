@@ -18,15 +18,6 @@
     </style>
 </head>
 <body>
-    % if anonymous == False:
-        <div class="profile">
-        <ul><li><a title="sign out" href="/signout" >Sign out</a></li>
-        <img src ="{{picture}}" class="profile-image">
-        <li>{{name}}</li>
-        <li>{{email}}</li></ul></div>
-    % else:
-        <a style="float:right"; title="sign in" href="/login" >Sign in</a>
-    % end
         <div><img src="/static/logo.jpg" class="logo" alt="DinoSaurch">
         <h1>DinoSaurch</h1>
         <form action ="/search" method="get">
