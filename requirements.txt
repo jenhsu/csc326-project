@@ -4,3 +4,4 @@ beaker==1.9.0
 boto
 google-api-python-client
 bjoern
+autocorrect

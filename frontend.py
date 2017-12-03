@@ -160,7 +160,6 @@ def result():
                 urls = cur.fetchall()
                 for url, score in urls:
                     results[url] += score
-            con.close()
             urls = sorted(results.items(), key=lambda x: x[1], reverse=True)
             global_search_cache.set(keywords, urls)
         page_urls = urls[5 * (page - 1): 5 * page]
