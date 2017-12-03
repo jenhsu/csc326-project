@@ -1,5 +1,4 @@
 import copy
-import httplib2
 import os
 import re
 import sqlite3 as sql
@@ -10,9 +9,6 @@ from math import ceil
 from autocorrect import spell
 from beaker.middleware import SessionMiddleware
 from bottle import route, run, request, static_file, redirect, app, template, error
-from googleapiclient.discovery import build
-from oauth2client.client import OAuth2WebServerFlow
-from oauth2client.client import flow_from_clientsecrets
 
 from cache import LRUCache
 
@@ -25,15 +21,12 @@ global_suggest = []
 # Initialize custom LRU Cache with a capacity of 10000 search results.
 global_search_cache = LRUCache(10000)
 
-#check if user is signed in or not
-anonymous = ""
 
 SCOPE = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
 BASE_URL = "http://localhost:8080"
 #BASE_URL = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
 REDIRECT_URI = BASE_URL + "/redirect"
-CLIENT_ID = "689107597559-4uoj4ucpa8c4ntm0jpiapnrasj4ecohl.apps.googleusercontent.com"
-CLIENT_SECRET = "QE8cFRbbubTPhztL7vf5aTZr"
+
 
 
 
@@ -48,70 +41,11 @@ app = SessionMiddleware(app(), session_opts)
 @route('/')
 def home():
     """home page of web application"""
-    global anonymous
+
     s = request.environ.get('beaker.session')
 
-    if 'email' in s:
-        anonymous = False
-    else:
-        anonymous = True
     return search_page()
 
-@route('/login')
-def login():
-    """Google API login page"""
-    global anonymous
-    anonymous = False
-
-    flow = flow_from_clientsecrets("client_secrets.json",
-    scope= SCOPE,
-    redirect_uri=REDIRECT_URI)
-    uri = flow.step1_get_authorize_url()
-    redirect(str(uri))
-
-@route('/redirect')
-def redirect_page():
-    global global_dict
-    global recent_history
-    code = request.query.get('code', '')
-    flow = OAuth2WebServerFlow(client_id=CLIENT_ID,
-                               client_secret=CLIENT_SECRET,
-                               scope=SCOPE,
-                               redirect_uri=REDIRECT_URI)
-    credentials = flow.step2_exchange(code)
-    token = credentials.id_token['sub']
-
-    #retreive user data from access token
-    http = httplib2.Http()
-    http = credentials.authorize(http)
-
-    # Get user info
-    users_service = build('oauth2', 'v2', http=http)
-    user_document = users_service.userinfo().get().execute()
-    user_email = user_document['email']
-    user_name = user_document['name']
-    user_picture = user_document['picture']
-
-    #Save user info
-    s = request.environ.get('beaker.session')
-    s['email'] = user_email
-    s['name'] = user_name
-    s['picture'] = user_picture
-    s.save()
-
-    #load user history
-    if user_email in global_user_history:
-        global_dict = global_user_history[user_email]
-    else:
-        global_user_history[user_email] = global_dict
-
-    #load user recent history
-    if user_email in global_user_recent:
-        recent_history = global_user_recent[user_email]
-    else:
-        global_user_recent[user_email] = recent_history
-
-    redirect('/search')
 
 @route('/search')
 def result():
