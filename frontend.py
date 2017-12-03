@@ -140,11 +140,11 @@ def result():
         # Choose the first word as the search keyWord.
         keywords = request.query['keywords']
         page = int(request.query['page_no'])
-        con = sql.connect('dbFile.db')
-        cur = con.cursor()
         urls = global_search_cache.get(keywords)
         if urls is None:
-            print "CACHE MISS"
+            con = sql.connect('dbFile.db')
+            cur = con.cursor()
+            print "CACHE MISS"  # TEMP
             results = defaultdict(float)
             for keyword in keywords.split():
                 # No need to order by pageRank.score DESC with multi-word search
@@ -162,45 +162,46 @@ def result():
                     results[url] += score
             urls = sorted(results.items(), key=lambda x: x[1], reverse=True)
             global_search_cache.set(keywords, urls)
+            #if original keywords has no results, search against corrected keywords
+            if len(urls) == 0:
+                spell_check_html, check_keywords = spell_check(keywords)
+                for keyword in check_keywords.split():
+                    # No need to order by pageRank.score DESC with multi-word search
+                    query = """
+                            SELECT DISTINCT docIndex.url, pageRank.score
+                            FROM pageRank, lexicon, invertedIndex, docIndex
+                            WHERE lexicon.word = "%s"
+                                AND invertedIndex.wordid = lexicon.wordid
+                                AND invertedIndex.docid = pageRank.docid
+                                AND docIndex.docid = pageRank.docid
+                            """ % keyword.lower()
+                    cur.execute(query)
+                    urls = cur.fetchall()
+                    for url, score in urls:
+                        results[url] += score
+                urls = sorted(results.items(), key=lambda x: x[1], reverse=True)
+                #corrected keywords has results
+                if len(urls) != 0:
+                    # Remove keywords from cache to trigger autocorrect on next call
+                    global_search_cache.set(keywords, None)
+                    #save valid corrected search in suggestions list
+                    if check_keywords not in global_suggest:
+                        global_suggest.append(check_keywords)
+                    result_page += spell_check_html
+                # corrected keywords has no results, display suggestions list
+                else:
+                    #search for suggestions against original keywords
+                    suggest_html = suggestions(keywords, global_suggest)
+            else:
+                #save valid search in suggestions list
+                if keywords not in global_suggest:
+                    global_suggest.append(keywords)
+            con.close()
+        elif not urls:
+            suggest_html = suggestions(keywords, global_suggest)
+
         page_urls = urls[5 * (page - 1): 5 * page]
         total_pages = int(ceil(len(urls) / 5.0))
-
-        #if original keywords has no results, search against corrected keywords
-        if len(urls) == 0:
-            spell_check_html, check_keywords = spell_check(keywords)
-            for keyword in check_keywords.split():
-                # No need to order by pageRank.score DESC with multi-word search
-                query = """
-                                SELECT DISTINCT docIndex.url, pageRank.score
-                                FROM pageRank, lexicon, invertedIndex, docIndex
-                                WHERE lexicon.word = "%s"
-                                    AND invertedIndex.wordid = lexicon.wordid
-                                    AND invertedIndex.docid = pageRank.docid
-                                    AND docIndex.docid = pageRank.docid
-                                """ % keyword.lower()
-
-            cur.execute(query)
-            urls = cur.fetchall()
-            for url, score in urls:
-                results[url] += score
-            urls = sorted(results.items(), key=lambda x: x[1], reverse=True)
-            page_urls = urls[5 * (page - 1): 5 * page]
-            total_pages = int(ceil(len(urls) / 5.0))
-            #corrected keywords has results
-            if len(urls) != 0:
-                #save valid corrected search in suggestions list
-                if check_keywords not in global_suggest:
-                    global_suggest.append(check_keywords)
-                result_page += spell_check_html
-            # corrected keywords has no results, display suggestions list
-            else:
-                #search for suggestions against original keywords
-                suggest_html = suggestions(keywords, global_suggest)
-        else:
-            #save valid search in suggestions list
-            if keywords not in global_suggest:
-                global_suggest.append(keywords)
-        con.close()
         result_page += template('search_results', urls=page_urls, curr_page=page,
                                 total_pages=total_pages,
                                 keywords="+".join(keywords.split()),
@@ -354,7 +355,6 @@ def spell_check(input):
     if (input != temp):
         html += '''<p> No result for \"''' + re.sub("\s\s+", " ", input) +\
         '''\"</p><p>Showing search results for \"''' + re.sub("\s\s+", " ", temp) + '''\"</p>'''
-
     return html,temp
 
 
@@ -386,7 +386,6 @@ def suggestions(input, history):
                <table id="Suggestions">
                <tr><th style="text-align:center">Search Suggestions</th></tr>
             '''
-    #if no suggestions can be found
     if not suggestions:
         html = ''
     else:
