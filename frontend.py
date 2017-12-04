@@ -22,9 +22,7 @@ global_suggest = []
 # Initialize custom LRU Cache with a capacity of 10000 search results.
 global_search_cache = LRUCache(10000)
 
-#base_url = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
 base_url = ""
-REDIRECT_URI = base_url + "/redirect"
 
 session_opts = {
     'session.type': 'file',
@@ -332,4 +330,5 @@ if __name__ == "__main__":
         print("Please run frontend.py with the server's public IP address.")
         sys.exit(0)
     base_url = sys.argv[1]
-    run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
+    #run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
+    run(host='0.0.0.0', port=80, debug=True, app=app)
