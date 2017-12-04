@@ -77,4 +77,4 @@ def setup_aws():
     c.close()
 
 if __name__ == "__main__":
-    #setup_aws()
+    setup_aws()
