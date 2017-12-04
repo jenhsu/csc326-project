@@ -19,7 +19,7 @@ def setup_aws():
     # setup connection and start instance
     conn = boto.ec2.connect_to_region(
         'us-east-1',aws_access_key_id = aws_access_key_id,
-	aws_secret_access_key = aws_secret_access_key)
+    aws_secret_access_key = aws_secret_access_key)
     key_pair = conn.create_key_pair('scriptkey')
     key_pair.save("")
     security = conn.create_security_group('csc326-group23','group23')
@@ -64,7 +64,7 @@ def setup_aws():
 
     # the commands are the following: update apt-get, install pip, install python-dev and libev-dev for the bjoern library used for server,
     # decompress the file copied earlier, install the libraries listed in requirements.txt, run frontend.py in the background
-    commands = [ "sudo apt-get update > /dev/null", "sudo apt-get install --yes python-pip > /dev/null", "sudo apt-get install --yes python-dev > /dev/null", "sudo apt-get install --yes libev-dev > /dev/null", "tar -xf csc326-project.tar.gz", "sudo pip install -r requirements.txt", "sudo nohup python frontend.py " + ip + " > /dev/null 2> frontend.err < /dev/null &"] # these commands will exec in series
+    commands = [ "sudo apt-get update > /dev/null", "sudo apt-get install --yes python-pip > /dev/null", "sudo apt-get install --yes python-dev > /dev/null", "sudo apt-get install --yes libev-dev > /dev/null", "tar -xf csc326-project.tar.gz", "sudo pip install -r requirements.txt", "sudo nohup python frontend.py > /dev/null 2> frontend.err < /dev/null &"] # these commands will exec in series
 
     # excuting the commands and print the outputs
     for command in commands:

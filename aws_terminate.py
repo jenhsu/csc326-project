@@ -25,3 +25,6 @@ def terminate_aws():
     reservation = conn.get_all_instances([instance_ID])
     reservation[0].instances[0].terminate()
     return 1
+
+if __name__ == "__main__":
+    terminate_aws()
