@@ -2,9 +2,9 @@ import boto
 import boto.ec2
 import sys
 
-def setup_aws():
-    """connect to us-east-1, set up an instance, 
-       and associate Elastic IPs to it
+def terminate_aws():
+    """connect to us-east-1, 
+       and terminate the instance
     """
     if len(sys.argv) != 2:
 	    print "Incorrect number of arguments passed"
@@ -23,7 +23,5 @@ def setup_aws():
         'us-east-1',aws_access_key_id = aws_access_key_id, 
 	aws_secret_access_key = aws_secret_access_key)
     reservation = conn.get_all_instances([instance_ID])
-    reservation[0].instances[0].stop()
-
-if __name__ == "__main__":
-    setup_aws()
+    reservation[0].instances[0].terminate()
+    return 1
