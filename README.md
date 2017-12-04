@@ -7,6 +7,8 @@ The project has the following directory structure:
 - client_secrets.json: stores Google API OATH2.0 parameters.
 - views: folder containing frontend bottle templates.
     - search.tpl: search page template.
+    - search_results.tpl: url results template.
+    - css.tpl: css template for search_results
 - logo.jpg: **DinoSaurch** search engine logo.
 - requirements.txt: Python package dependencies.
 - crawler.py: Crawler implementation built on top of starter code.
