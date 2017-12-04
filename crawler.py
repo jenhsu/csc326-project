@@ -603,7 +603,7 @@ class crawler(object):
 
 
 if __name__ == "__main__":
-    bot = crawler("dbFile1.db", "url1.txt")
+    bot = crawler("dbFile.db", "url1.txt")
     inverted_index = bot.get_inverted_index()
     print("Inverted Index: {}".format(inverted_index))
     resolved_inverted_index = bot.get_resolved_inverted_index()

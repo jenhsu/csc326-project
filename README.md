@@ -25,12 +25,12 @@ tables.
 
 Running Frontend
 ---------------
-Run **python frontend.py**.
+Run **python frontend.py <server_ip_address>** to launch the webserver.
 
 Launching Script:
 -------------------------------
-To launch the instance, first compress everything in the directory to a file named csc326-project.tar.gz. In the same directory, write your AWS credentials on the first line of credentials.csv in the following format: <aws_access_key_id>,<aws_secret_access_key>, and run aws_setup.py. When script finishes, the public IP and DNS will be printed to the screen and returned, which can then be used to access the website. 
+First, run pip install paramiko to install the paramiko library. To launch the instance, compress everything in the directory to a file named csc326-project.tar.gz. In the same directory, write your AWS credentials on the first line of credentials.csv in the following format: <aws_access_key_id>,<aws_secret_access_key>, and run aws_setup.py. When script finishes, the public IP and DNS will be printed to the screen and returned, which can then be used to access the website. 
 
 Termination Script:
 -------------------------------
-To terminate, first acquire the instances ID you are about to terminate either through EC2 console, or through boto api calls. Then in shell do >python aws_terminate.py <your_instance_id> if there is no error(return 1) then the instance terminated with no error
+To terminate, first acquire the instances ID you are about to terminate either through EC2 console, or through boto api calls. Then in shell run >python aws_terminate.py <your_instance_id>. If there is no error (return value is 1) then the instance terminated with no error

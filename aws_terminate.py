@@ -3,8 +3,8 @@ import boto.ec2
 import sys
 
 def terminate_aws():
-    """connect to us-east-1, set up an instance,
-       and associate Elastic IPs to it
+    """connect to us-east-1, 
+       and terminate the instance
     """
     if len(sys.argv) != 2:
         print "Incorrect number of arguments passed"
@@ -14,15 +14,13 @@ def terminate_aws():
     instance_ID = sys.argv[1]
     print 'instance ID is: ', instance_ID
 
-    # extract access info from crendential file
     f = open("credentials.csv", "r")
     line = f.readline()
     aws_access_key_id = line.split(",")[0].strip()
     aws_secret_access_key = line.split(",")[1].strip()
 
-    # retrieve the instance and terminate it
     conn = boto.ec2.connect_to_region(
-        'us-east-1',aws_access_key_id = aws_access_key_id,
+        'us-east-1',aws_access_key_id = aws_access_key_id, 
 	aws_secret_access_key = aws_secret_access_key)
     reservation = conn.get_all_instances([instance_ID])
     reservation[0].instances[0].terminate()

@@ -1,6 +1,7 @@
 import copy
 import os
 import re
+import sys
 import sqlite3 as sql
 from collections import Counter
 from collections import OrderedDict, deque, defaultdict
@@ -21,8 +22,9 @@ global_suggest = []
 # Initialize custom LRU Cache with a capacity of 10000 search results.
 global_search_cache = LRUCache(10000)
 
-BASE_URL = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
-REDIRECT_URI = BASE_URL + "/redirect"
+#base_url = "http://ec2-34-237-5-126.compute-1.amazonaws.com"
+base_url = ""
+REDIRECT_URI = base_url + "/redirect"
 
 session_opts = {
     'session.type': 'file',
@@ -49,7 +51,7 @@ def result():
     # Get user input if any exist
     if 'keywords' in request.query:
         if 'page_no' not in request.query:
-            redirect("{0}/search?{1}".format(BASE_URL, request.query_string + "&page_no=1"))
+            redirect("{0}/search?{1}".format(base_url, request.query_string + "&page_no=1"))
         # Choose the first word as the search keyWord.
         keywords = request.query['keywords']
         page = int(request.query['page_no'])
@@ -236,7 +238,7 @@ def server_static(filename):
 @error(404)
 def error404(error):
     """Return contents of an error page."""
-    return 'The requested page or file does not exist. <a href="{}">Click to search again.</a>'.format(BASE_URL)
+    return 'The requested page or file does not exist. <a href="{}">Click to search again.</a>'.format(base_url)
 
 def parse_dict(input_string):
     """Stores results, history in a dict and recently search in a deque and returns the results table.
@@ -325,5 +327,9 @@ def get_recent():
     html += "</table>"
     return html
 
-
-run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Please run frontend.py with the server's public IP address.")
+        sys.exit(0)
+    base_url = sys.argv[1]
+    run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
