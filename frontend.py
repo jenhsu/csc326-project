@@ -330,5 +330,4 @@ if __name__ == "__main__":
         print("Please run frontend.py with the server's public IP address.")
         sys.exit(0)
     base_url = sys.argv[1]
-    #run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
-    run(host='0.0.0.0', port=80, debug=True, app=app)
+    run(host='0.0.0.0', port=80, debug=True, app=app, server='bjoern')
